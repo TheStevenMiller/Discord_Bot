@@ -1,0 +1,39 @@
+steps:
+  # Step 1: Retrieve Discord bot token from Secret Manager
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+    - '-c'
+    - |
+      gcloud secrets versions access latest --secret="discord-bot-token" > /workspace/discord_token.txt
+      gcloud secrets versions access latest --secret="ga4-service-account-key" > /workspace/service-account-key.json
+  
+  # Step 2: Build and run the Discord bot check
+  - name: 'python:3.11-slim'
+    entrypoint: 'bash'
+    env:
+    - 'GOOGLE_APPLICATION_CREDENTIALS=/workspace/service-account-key.json'
+    - 'GCP_PROJECT_ID=instacart-creative'
+    - 'GCS_BUCKET_NAME=discord-messages-instacart-creative'
+    - 'DISCORD_CHANNEL_ID=1180259855823540225'
+    - 'TIMEZONE=America/New_York'
+    args:
+    - '-c'
+    - |
+      pip install -r requirements.txt
+      export DISCORD_BOT_TOKEN=$(cat /workspace/discord_token.txt)
+      python main.py
+  
+  # Step 3: Cleanup sensitive files
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+    - '-c'
+    - |
+      rm -f /workspace/discord_token.txt
+      rm -f /workspace/service-account-key.json
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  
+timeout: '300s'  # 5 minute timeout per execution
