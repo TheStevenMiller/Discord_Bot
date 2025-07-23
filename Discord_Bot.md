@@ -750,3 +750,136 @@ The implementation is complete and ready for:
 - Processing time: ~1-2 seconds per execution
 - Storage used: ~1KB per message in HTML format
 - State file: 200 bytes JSON
+
+## 🚀 GitHub Repository Created - July 23, 2025
+
+### Repository Details
+- **URL**: https://github.com/TheStevenMiller/Discord_Bot
+- **Visibility**: Public
+- **Main Branch**: main
+- **Created**: July 23, 2025
+
+### Repository Setup Commands Used
+```bash
+# Initialize git repository
+git init
+git add .
+git commit -m "Initial commit of Discord Bot project"
+
+# Create GitHub repository and push
+gh repo create Discord_Bot --public --source=. --remote=origin --push
+```
+
+### Next Steps for GitHub Integration
+1. **Set up Cloud Build trigger** connected to this repository
+2. **Configure automatic deployments** on push to main branch
+3. **Add GitHub Actions** for CI/CD if needed
+4. **Update README.md** with badges and status indicators
+
+## ✅ Cloud Deployment Completed - July 23, 2025
+
+### Infrastructure Setup Summary
+
+1. **Created Pub/Sub Topic**
+   - Topic: `discord-bot-trigger`
+   - Purpose: Receives messages from Cloud Scheduler to trigger bot execution
+
+2. **Configured Secret Manager**
+   - Created secret: `discord-bot-token`
+   - Granted access to both Cloud Build service accounts:
+     - `579236001048@cloudbuild.gserviceaccount.com`
+     - `579236001048-compute@developer.gserviceaccount.com`
+
+3. **Created Cloud Build Trigger**
+   - Name: `discord-bot-message-check`
+   - Type: Pub/Sub trigger
+   - Connected to GitHub repository: https://github.com/TheStevenMiller/Discord_Bot
+   - Build configuration: `cloudbuild.yaml`
+   - Subscription: `gcb-discord-bot-message-check`
+
+4. **Set Up Cloud Scheduler**
+   - Job name: `discord-message-check`
+   - Schedule: Every 1 minute (Cloud Scheduler minimum interval)
+   - Topic: `discord-bot-trigger`
+   - Location: `us-central1`
+   - Status: ENABLED
+
+### Deployment Architecture (As Implemented)
+```
+┌─────────────────┐     ┌──────────────┐     ┌─────────────────┐
+│ Cloud Scheduler │────▶│   Pub/Sub    │────▶│  Cloud Build    │
+│  (1 minute)     │     │    Topic     │     │    Trigger      │
+└─────────────────┘     └──────────────┘     └────────┬────────┘
+                                                      │
+                                             ┌────────▼────────┐
+                                             │     GitHub      │
+                                             │   Repository    │
+                                             │ (Discord_Bot)   │
+                                             └────────┬────────┘
+                                                      │
+                                             ┌────────▼────────┐
+                                             │  Cloud Build    │
+                                             │   Execution     │
+                                             └────────┬────────┘
+                                                      │
+                               ┌──────────────────────┴───────────────┐
+                               │                                      │
+                      ┌────────▼────────┐                   ┌────────▼────────┐
+                      │  Discord API    │                   │  Google Cloud   │
+                      │ (Check Messages)│                   │    Storage      │
+                      └─────────────────┘                   └─────────────────┘
+```
+
+### Production Status
+
+**✅ Fully Operational as of July 23, 2025**
+- Bot runs automatically every minute via Cloud Scheduler
+- Successfully checks Discord channel for new messages
+- Archives unread messages as HTML files in GCS
+- Maintains state between runs via `_state/bot_state.json`
+- All logs available in Cloud Logging
+
+### Key Configuration Updates Made
+
+1. **Fixed Environment Variable Handling in cloudbuild.yaml**
+   - Changed from `export` to inline environment variable passing
+   - Ensures DISCORD_BOT_TOKEN is properly available to Python script
+
+2. **Connected GitHub Repository to Cloud Build**
+   - Manually connected through Cloud Console
+   - Authorized Cloud Build GitHub App to access repository
+
+### Monitoring & Operations
+
+**Check Build Status:**
+```bash
+gcloud builds list --limit=5 --project=instacart-creative
+```
+
+**View Logs:**
+```bash
+gcloud builds log [BUILD_ID] --project=instacart-creative
+```
+
+**Manual Trigger:**
+```bash
+gcloud scheduler jobs run discord-message-check --location=us-central1 --project=instacart-creative
+```
+
+**View Stored Messages:**
+```bash
+gsutil ls -r gs://discord-messages-instacart-creative/
+```
+
+### Performance Metrics
+- Build execution time: ~30-40 seconds per run
+- API calls: 1-2 per execution (well under Discord limits)
+- Storage: HTML files created only when new messages exist
+- Cost: Minimal (pay only for build execution time)
+
+### Important Operational Notes
+
+1. **Schedule Limitation**: Running every 1 minute instead of 5 seconds due to Cloud Scheduler constraints
+2. **Token Type**: Currently using user token - should be replaced with bot token for production compliance
+3. **State Management**: Using GCS for state persistence instead of Cloud SQL (simpler implementation)
+4. **No Flask/Cloud Run**: Direct execution via Cloud Build (more cost-effective for periodic tasks)
